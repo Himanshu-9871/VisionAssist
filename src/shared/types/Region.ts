@@ -1,0 +1,1 @@
+export type Region = "LEFT" | "CENTER" | "RIGHT";

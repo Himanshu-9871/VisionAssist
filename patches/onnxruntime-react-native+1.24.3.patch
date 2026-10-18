@@ -1,0 +1,67 @@
+diff --git a/node_modules/onnxruntime-react-native/android/CMakeLists.txt b/node_modules/onnxruntime-react-native/android/CMakeLists.txt
+index 2f814e8..0fc2f44 100644
+--- a/node_modules/onnxruntime-react-native/android/CMakeLists.txt
++++ b/node_modules/onnxruntime-react-native/android/CMakeLists.txt
+@@ -97,3 +97,9 @@ target_link_libraries(
+   ${log-lib} # <-- Logcat logger
+   android # <-- Android JNI core
+ )
++
++target_link_options(onnxruntimejsi PRIVATE 
++  "-Wl,-z,max-page-size=16384" 
++  "-Wl,-z,common-page-size=16384"
++)
++
+diff --git a/node_modules/onnxruntime-react-native/android/build.gradle b/node_modules/onnxruntime-react-native/android/build.gradle
+index 41b4359..50126eb 100644
+--- a/node_modules/onnxruntime-react-native/android/build.gradle
++++ b/node_modules/onnxruntime-react-native/android/build.gradle
+@@ -247,7 +247,7 @@ dependencies {
+     extractLibs "com.microsoft.onnxruntime:onnxruntime-android:latest.integration@aar"
+   }
+ 
+-  if (VersionNumber.parse(REACT_NATIVE_VERSION) < VersionNumber.parse("0.71")) {
++  if (REACT_NATIVE_MINOR_VERSION < 71) {
+     extractLibs "com.facebook.fbjni:fbjni:+:headers"
+     extractLibs "com.facebook.fbjni:fbjni:+"
+   }
+diff --git a/node_modules/onnxruntime-react-native/lib/binding.ts b/node_modules/onnxruntime-react-native/lib/binding.ts
+index f5963a0..e0ab2d8 100644
+--- a/node_modules/onnxruntime-react-native/lib/binding.ts
++++ b/node_modules/onnxruntime-react-native/lib/binding.ts
+@@ -11,7 +11,13 @@ declare global {
+ }
+ 
+ if (typeof globalThis.OrtApi === 'undefined') {
+-  Module.install();
++  if (Module && typeof Module.install === 'function') {
++    Module.install();
++  } else {
++    console.warn(
++      '[ONNX Runtime] Native module "Onnxruntime" is null. ONNX Runtime cannot run in Expo Go; please use the VisionAssist custom development build.'
++    );
++  }
+ }
+ 
+ export const OrtApi =
+@@ -20,7 +26,9 @@ export const OrtApi =
+     {},
+     {
+       get: () => {
+-        throw new Error('OrtApi is not initialized. Please make sure Onnxruntime installation is successful.');
++        throw new Error(
++          'OrtApi is not initialized. Make sure you are running in the VisionAssist custom development build, not Expo Go.'
++        );
+       },
+     },
+   );
+diff --git a/node_modules/onnxruntime-react-native/unimodule.json b/node_modules/onnxruntime-react-native/unimodule.json
+deleted file mode 100644
+index c2bd3c0..0000000
+--- a/node_modules/onnxruntime-react-native/unimodule.json
++++ /dev/null
+@@ -1,4 +0,0 @@
+-{
+-  "name": "onnxruntime-react-native",
+-  "platforms": ["ios", "android"]
+-}

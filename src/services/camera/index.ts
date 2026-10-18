@@ -1,2 +1,6 @@
-//Now other modules can import the captureFrame function from this file, instead of directly from cameraService.ts. This can help to keep the code organized and make it easier to manage dependencies between modules.
-export {captureFrame} from "./cameraService";
+export { captureFrame, getImageDimensions } from "./cameraService";
+export {
+  default as CameraPreview,
+  type CameraPreviewProps,
+  type CameraPreviewHandle,
+} from "./CameraView";

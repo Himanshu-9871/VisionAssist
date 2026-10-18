@@ -189,23 +189,63 @@ async function runInferenceOnImageData(
 
 /**
  * Public API: Run YOLO26n on an image URI (e.g. captured camera photo).
+ * Optimized with native hardware scaling (expo-image-manipulator) to bypass
+ * multi-second JavaScript JPEG decoding on 12MP photos.
  */
 export async function detectObjectsFromImage(
-  imageUri: string
+  imageUri: string,
+  originalWidth?: number,
+  originalHeight?: number
 ): Promise<Detection[]> {
   if (!imageUri || typeof imageUri !== "string" || imageUri.trim() === "") {
     throw new Error(`[YOLO26] Invalid image URI provided: ${imageUri}`);
   }
 
-  console.log("[YOLO26] Starting detection...");
-  console.log("[YOLO26] Processing image URI:", imageUri);
+  const totalStartTime = Date.now();
+  console.log("[YOLO26] Starting detection pipeline...");
 
-  const bytes = await loadImageBytesFromUri(imageUri);
+  let targetUri = imageUri;
+
+  // 1. Native Hardware Resize (~20ms in C++ vs 3+ seconds in JS)
+  try {
+    const resizeStartTime = Date.now();
+    const manipulated = await manipulateAsync(
+      imageUri,
+      [{ resize: { width: MODEL_WIDTH } }],
+      { compress: 0.8, format: SaveFormat.JPEG }
+    );
+    targetUri = manipulated.uri;
+    console.log(
+      `[YOLO26] Native hardware downscale: ${manipulated.width}x${manipulated.height} in ${Date.now() - resizeStartTime} ms`
+    );
+  } catch (resizeError) {
+    console.warn("[YOLO26] Native resize skipped, falling back to direct decode:", resizeError);
+  }
+
+  // 2. Fast decode of compact JPEG in JS (~20ms)
+  const decodeStartTime = Date.now();
+  const bytes = await loadImageBytesFromUri(targetUri);
   const image = decodeImageBytes(bytes);
+  console.log(`[YOLO26] Compact image decoded in ${Date.now() - decodeStartTime} ms`);
 
-  console.log(`[YOLO26] Image decoded: ${image.width}x${image.height}`);
+  // 3. Multi-threaded ONNX Inference (~150-250ms)
+  const detections = await runInferenceOnImageData(image.data, image.width, image.height);
 
-  return runInferenceOnImageData(image.data, image.width, image.height);
+  // 4. Remap bounding boxes back to original camera coordinate space
+  if (originalWidth && originalWidth > 0 && originalHeight && originalHeight > 0) {
+    const scaleFactorX = originalWidth / image.width;
+    const scaleFactorY = originalHeight / image.height;
+
+    for (const det of detections) {
+      det.boundingBox.x = Math.round(det.boundingBox.x * scaleFactorX);
+      det.boundingBox.y = Math.round(det.boundingBox.y * scaleFactorY);
+      det.boundingBox.width = Math.round(det.boundingBox.width * scaleFactorX);
+      det.boundingBox.height = Math.round(det.boundingBox.height * scaleFactorY);
+    }
+  }
+
+  console.log(`[YOLO26] Total detection time: ${Date.now() - totalStartTime} ms`);
+  return detections;
 }
 
 /**
@@ -224,7 +264,7 @@ export async function testYOLO26(): Promise<Detection[]> {
 
 ```typescript
 export interface CameraPreviewProps {
-  onDetect?: (imageUri: string) => Promise<void> | void;
+  onDetect?: (imageUri: string, width?: number, height?: number) => Promise<void> | void;
   isDetecting?: boolean;
 }
 

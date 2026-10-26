@@ -4,4 +4,4 @@ export {
   isSpeaking,
 } from "./ttsService";
 
-export type { TtsOptions } from "./types";
+export type { TtsOptions } from "../../shared/types/TtsOptions";

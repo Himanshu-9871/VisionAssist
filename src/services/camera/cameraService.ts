@@ -1,6 +1,6 @@
 import { CameraView } from "expo-camera";
 import { Image } from "react-native";
-import { Frame } from "../../shared/types/Frame";
+import type { Frame } from "../../shared/types";
 
 /**
  * Captures a single frame from the camera, returning the image URI and exact photo dimensions.
@@ -24,8 +24,7 @@ export async function captureFrame(
       height: photo.height,
     };
   } catch (error) {
-    console.error("Camera capture failed:", error);
-
+    console.error("[CameraService] Camera capture failed:", error);
     throw new Error("Failed to capture image from camera.");
   }
 }
@@ -43,4 +42,32 @@ export function getImageDimensions(
       (error) => reject(error)
     );
   });
+}
+
+/**
+ * Resolves exact photo dimensions from capture metadata or retrieves them via Image.getSize.
+ */
+export async function resolveImageDimensions(
+  uri: string,
+  providedWidth?: number,
+  providedHeight?: number
+): Promise<{ width: number; height: number }> {
+  if (
+    providedWidth &&
+    providedHeight &&
+    providedWidth > 0 &&
+    providedHeight > 0
+  ) {
+    return { width: providedWidth, height: providedHeight };
+  }
+
+  try {
+    return await getImageDimensions(uri);
+  } catch (err) {
+    console.warn(
+      "[CameraService] Could not retrieve dimensions via Image.getSize, using 640x640 default:",
+      err
+    );
+    return { width: 640, height: 640 };
+  }
 }

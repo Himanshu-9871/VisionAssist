@@ -1,4 +1,5 @@
 import type { Detection } from "../objectDetection";
+import { capitalize, getPluralName } from "../../utils/grammar";
 import { DEFAULT_SPATIAL_THRESHOLDS } from "./config";
 import type {
   SpatialDescriptionResult,
@@ -8,95 +9,9 @@ import type {
 } from "./types";
 
 /**
- * Irregular plurals commonly found in object detection class sets (COCO classes).
- */
-const IRREGULAR_PLURALS: Record<string, string> = {
-  person: "people",
-  knife: "knives",
-  mouse: "mice",
-  sheep: "sheep",
-  bear: "bears",
-  bus: "buses",
-  bench: "benches",
-  sandwich: "sandwiches",
-  couch: "couches",
-  toothbrush: "toothbrushes",
-  wine_glass: "wine glasses",
-  "wine glass": "wine glasses",
-  sports_ball: "sports balls",
-  "sports ball": "sports balls",
-  baseball_bat: "baseball bats",
-  "baseball bat": "baseball bats",
-  baseball_glove: "baseball gloves",
-  "baseball glove": "baseball gloves",
-  traffic_light: "traffic lights",
-  "traffic light": "traffic lights",
-  fire_hydrant: "fire hydrants",
-  "fire hydrant": "fire hydrants",
-  stop_sign: "stop signs",
-  "stop sign": "stop signs",
-  parking_meter: "parking meters",
-  "parking meter": "parking meters",
-  potted_plant: "potted plants",
-  "potted plant": "potted plants",
-  dining_table: "dining tables",
-  "dining table": "dining tables",
-  cell_phone: "cell phones",
-  "cell phone": "cell phones",
-  hair_drier: "hair driers",
-  "hair drier": "hair driers",
-  teddy_bear: "teddy bears",
-  "teddy bear": "teddy bears",
-};
-
-/**
- * Returns the plural form of a noun for natural spoken text.
- */
-function getPluralName(className: string, count: number): string {
-  const cleanName = className.replace(/_/g, " ").trim();
-  if (count <= 1) {
-    return cleanName;
-  }
-
-  const lower = cleanName.toLowerCase();
-  if (IRREGULAR_PLURALS[lower]) {
-    return IRREGULAR_PLURALS[lower];
-  }
-
-  // Words that are already plural
-  if (lower === "scissors" || lower === "skis") {
-    return cleanName;
-  }
-
-  if (
-    lower.endsWith("ch") ||
-    lower.endsWith("sh") ||
-    lower.endsWith("ss") ||
-    lower.endsWith("x") ||
-    lower.endsWith("z")
-  ) {
-    return cleanName + "es";
-  }
-
-  if (lower.endsWith("y") && !/[aeiou]y$/i.test(lower)) {
-    return cleanName.slice(0, -1) + "ies";
-  }
-
-  return cleanName + "s";
-}
-
-/**
- * Capitalizes the first letter of a sentence.
- */
-function capitalize(text: string): string {
-  if (!text) return "";
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
-/**
  * Converts a spatial region enum into natural spoken English phrasing.
  */
-function getRegionPhrase(region: SpatialRegion): string {
+export function getRegionPhrase(region: SpatialRegion): string {
   switch (region) {
     case "LEFT":
       return "on the left";
@@ -192,7 +107,6 @@ export function analyzeSpatialDetections(
 
     // Normalize against original image width and clamp between 0 and 1
     const normalizedCenter = Math.max(0, Math.min(1, centerX / imageWidth));
-
     const region = classifyHorizontalPosition(normalizedCenter, config);
 
     results.push({

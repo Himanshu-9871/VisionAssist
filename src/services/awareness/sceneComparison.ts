@@ -13,20 +13,21 @@ export function calculateIoU(
   const yA = Math.max(boxA.y, boxB.y);
   const xB = Math.min(boxA.x + boxA.width, boxB.x + boxB.width);
   const yB = Math.min(boxA.y + boxA.height, boxB.y + boxB.height);
+  // these four values define the intersection rectangle
 
   const intersectionArea = Math.max(0, xB - xA) * Math.max(0, yB - yA);
-  if (intersectionArea <= 0) return 0;
-
+  if (intersectionArea <= 0) return 0;  //negative check
+  //calculate union area
   const boxAArea = boxA.width * boxA.height;
   const boxBArea = boxB.width * boxB.height;
   const unionArea = boxAArea + boxBArea - intersectionArea;
 
   if (unionArea <= 0) return 0;
-  return intersectionArea / unionArea;
+  return intersectionArea / unionArea;  //iou value
 }
 
 /**
- * Generates a lightweight unique ID for tracked objects.
+ * Generates a lightweight unique ID for tracked objects. Every newly tracked object needs an ID.
  */
 function generateTrackingId(className: string, timestamp: number): string {
   const randomPart = Math.random().toString(36).substring(2, 7);
@@ -122,6 +123,7 @@ export function compareScenes(
         highestScore = matchScore;
         bestMatchIndex = i;
       }
+      //The system selects the previous object with the highest matching score
     }
 
     if (bestMatchIndex !== -1) {

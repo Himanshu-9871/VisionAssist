@@ -1,6 +1,13 @@
 import type { AwarenessConfig } from "./types";
 
 /**
+ * Named timing constants for awareness lifecycle scheduling.
+ */
+export const STARTUP_CYCLE_DELAY_MS = 800;
+export const RESUME_CYCLE_DELAY_MS = 600;
+export const MIN_CAPTURE_INTERVAL_MS = 500;
+
+/**
  * Default configuration for the Automatic Awareness Mode.
  */
 export const DEFAULT_AWARENESS_CONFIG: AwarenessConfig = {

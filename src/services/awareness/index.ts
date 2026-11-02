@@ -8,7 +8,12 @@ export {
 
 export { compareScenes, calculateIoU } from "./sceneComparison";
 export { decideAnnouncement } from "./announcementEngine";
-export { DEFAULT_AWARENESS_CONFIG } from "./config";
+export {
+  DEFAULT_AWARENESS_CONFIG,
+  STARTUP_CYCLE_DELAY_MS,
+  RESUME_CYCLE_DELAY_MS,
+  MIN_CAPTURE_INTERVAL_MS,
+} from "./config";
 export { useAwarenessMode } from "./useAwarenessMode";
 
 export type {

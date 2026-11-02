@@ -10,7 +10,7 @@ VisionAssist is an on-device AI assistant built with **React Native (Expo)** des
 
 ### End-to-End Data Flow Diagram
 
-```mermaid
+```
 flowchart TD
     A[Camera Viewport] -->|Captures Frame JPEG| B[cameraService.ts]
     B -->|Downscales & Normalizes| C[imagePreprocessing.ts]

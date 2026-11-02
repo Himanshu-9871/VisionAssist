@@ -48,12 +48,13 @@ export function useAwarenessMode({
     config?.captureIntervalMs ?? DEFAULT_AWARENESS_CONFIG.captureIntervalMs
   );
 
-  const controllerRef = useRef<AwarenessController | null>(null);
+  const controllerRef = useRef<AwarenessController | null>(null);  //reference to controller instance
   const cameraRefHolder = useRef(cameraRef);
   cameraRefHolder.current = cameraRef;
 
   const configRefHolder = useRef(config);
   configRefHolder.current = config;
+  //This keeps the latest camera reference available to the controller.
 
   // Initialize controller once on mount
   useEffect(() => {

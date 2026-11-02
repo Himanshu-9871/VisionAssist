@@ -1,7 +1,7 @@
 import { calculateIoU, compareScenes } from "../sceneComparison";
 import { decideAnnouncement } from "../announcementEngine";
 import { AwarenessController } from "../awarenessController";
-import { DEFAULT_AWARENESS_CONFIG } from "../config";
+import { DEFAULT_AWARENESS_CONFIG, MIN_CAPTURE_INTERVAL_MS } from "../config";
 import type { Detection } from "../../objectDetection";
 import type { Frame } from "../../../shared/types/Frame";
 
@@ -243,7 +243,7 @@ async function runTests() {
   );
 
   // -----------------------------------------------------------------
-  // Test 8: Controller lifecycle test (Start, Pause, Resume, Stop, Concurrency)
+  // Test 8: Controller lifecycle test (Start, Pause, Resume, Stop)
   // -----------------------------------------------------------------
   console.log("\n--- Testing AwarenessController Lifecycle ---");
 
@@ -318,6 +318,72 @@ async function runTests() {
 
   // Teardown
   controller.destroy();
+
+  // -----------------------------------------------------------------
+  // Test 9: Encapsulation & Getter Immutability
+  // -----------------------------------------------------------------
+  console.log("\n--- Testing Encapsulation & Immutability ---");
+  const encapController = new AwarenessController(mockDeps);
+  const configCopy = encapController.getConfig();
+  configCopy.captureIntervalMs = 99999;
+  assert(
+    encapController.getConfig().captureIntervalMs !== 99999,
+    "Mutating getConfig() return object does not mutate internal config"
+  );
+  encapController.destroy();
+
+  // -----------------------------------------------------------------
+  // Test 10: Interval Clamping (Constants)
+  // -----------------------------------------------------------------
+  console.log("\n--- Testing Constants & Interval Clamping ---");
+  const clampController = new AwarenessController(mockDeps);
+  clampController.setCaptureInterval(100);
+  assert(
+    clampController.getConfig().captureIntervalMs === MIN_CAPTURE_INTERVAL_MS,
+    `Interval clamped to MIN_CAPTURE_INTERVAL_MS (${MIN_CAPTURE_INTERVAL_MS}ms) when set below minimum`
+  );
+  clampController.destroy();
+
+  // -----------------------------------------------------------------
+  // Test 11: Async Safety - In-flight Cancellation on Stop
+  // -----------------------------------------------------------------
+  console.log("\n--- Testing Async Cancellation on Stop ---");
+  let delayedResolve: (f: Frame | null) => void;
+  const delayedCapture = new Promise<Frame | null>((resolve) => {
+    delayedResolve = resolve;
+  });
+
+  let spokenAfterStop = false;
+  const cancelController = new AwarenessController(
+    {
+      captureFrame: () => delayedCapture,
+      detectObjects: async () => [
+        {
+          classId: 0,
+          className: "person",
+          confidence: 0.9,
+          boundingBox: { x: 50, y: 100, width: 80, height: 200 },
+        },
+      ],
+      speakText: async () => {
+        spokenAfterStop = true;
+      },
+      stopSpeech: async () => {},
+      isSpeaking: async () => false,
+    },
+    { speakStatusTransitions: false }
+  );
+
+  await cancelController.start();
+  await cancelController.stop();
+  assert(cancelController.getStatus() === "INACTIVE", "Controller is INACTIVE after stop");
+
+  delayedResolve!({ uri: "file://delayed.jpg", width: 640, height: 640 });
+  await new Promise((resolve) => setTimeout(resolve, 50));
+
+  assert(spokenAfterStop === false, "In-flight capture was safely aborted after stop");
+  assert(cancelController.getTrackedObjects().length === 0, "No tracked objects committed after stop");
+  cancelController.destroy();
 
   console.log("\n=================================================");
   console.log(`Results: ${passed} PASSED, ${failed} FAILED`);

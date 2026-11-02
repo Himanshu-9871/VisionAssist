@@ -32,9 +32,10 @@ const boundingBox: BoundingBox = {
 
 // 3. Detection
 const detection: Detection = {
-  label: "bottle",
+  classId: 39,
+  className: "bottle",
   confidence: 0.92,
-    boundingBox: boundingBox,
+  boundingBox: boundingBox,
 };
 
 // 4. Region
@@ -42,7 +43,7 @@ const region: Region = "RIGHT";
 
 // 5. Positioned Object
 const positionedObject: PositionedObject = {
-  label: detection.label,
+  label: detection.className,
   confidence: detection.confidence,
   region,
 };
